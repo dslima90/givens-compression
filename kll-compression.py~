@@ -1,0 +1,55 @@
+#!/bin/python
+
+import numpy as np
+import givens
+import itertools
+import pickle, sys
+from itertools import combinations
+
+ANGS_TABLE = {}
+LTABLE = {}
+
+ANGS_TABLE_FILE = ".kll-angs-table-file"
+LTABLE_FILE = ".kll-ltable-file"
+
+def generate_data_lookup(NUMBER_OF_ANGLES = 10, MATRIX_SIZE = 8):
+    global ANGS_TABLE, LTABLE
+
+    ANGLES = np.arange(0,2*np.pi,2*np.pi/NUMBER_OF_ANGLES)
+
+    ANGS_TABLE = {}
+
+    print "generating angles table"
+    
+    for ang in ANGLES:
+        ANGS_TABLE[ang] = np.identity(MATRIX_SIZE)
+        for i,j in combinations(xrange(MATRIX_SIZE),2):
+            ANGS_TABLE[ang] = np.dot(ANGS_TABLE[ang],givens.givens(i,j,ang,MATRIX_SIZE))
+        #print ang,ANGS_TABLE[ang]
+
+    LTABLE = {}
+
+    print "generating ltable"
+    number_of_entries = NUMBER_OF_ANGLES**(MATRIX_SIZE-1)
+    print "number of entries: %u"%(number_of_entries)
+    i = 0
+    for angs in itertools.product(ANGS_TABLE,repeat=MATRIX_SIZE-1):
+        i+=1
+        if (i%(number_of_entries/100) == 0):
+            sys.stdout.write('.')
+	    sys.stdout.flush()
+        MAT = np.identity(MATRIX_SIZE)
+        for ang in angs:
+            MAT = np.dot(MAT,ANGS_TABLE[ang])
+        LTABLE[angs] = MAT
+    
+    pickle.dump(ANGS_TABLE,open(ANGS_TABLE_FILE,"wb"), protocol = 2)
+    pickle.dump(ANGS_TABLE,open(LTABLE_FILE,"wb"), protocol = 2)
+    
+    print len(ANGS_TABLE), len(LTABLE)
+    
+def read_data_lookup_file():
+    global ANGS_TABLE, LTABLE
+
+generate_data_lookup()
+
